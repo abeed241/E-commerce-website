@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AbCart - E-commerce</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+
+    body {
+      background-color: #f9f9f9;
+      color: #333;
+      overflow-x: hidden;
+    }
+
+    header {
+      background-color: #0f172a;
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .cart-button {
+      background: #6366f1;
+      border: none;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .cart-button:hover {
+      background: #4f46e5;
+    }
+
+    .hero {
+      padding: 2rem;
+      text-align: center;
+      background: linear-gradient(to right, #6366f1, #60a5fa);
+      color: white;
+    }
+
+    .products {
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .card {
+      background: white;
+      padding: 1rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+    }
+
+    .card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      border-radius: 10px;
+    }
+
+    .card h3 {
+      margin: 0.8rem 0 0.3rem;
+    }
+
+    .price {
+      color: #16a34a;
+      font-weight: bold;
+    }
+
+    button {
+      margin-top: 1rem;
+      background: #6366f1;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #4f46e5;
+    }
+
+    .remove-btn {
+      background: #ef4444;
+      margin-top: 0.5rem;
+    }
+
+    /* Cart Sidebar */
+    .cart-sidebar {
+      position: fixed;
+      top: 0;
+      right: -400px;
+      width: 340px;
+      height: 100%;
+      background: white;
+      box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+      padding: 1rem;
+      overflow-y: auto;
+      transition: right 0.3s ease;
+      z-index: 99;
+    }
+
+    .cart-sidebar.open {
+      right: 0;
+    }
+
+    .cart-sidebar h2 {
+      margin-bottom: 1rem;
+    }
+
+    .cart-item {
+      margin-bottom: 1rem;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 1rem;
+    }
+
+
+    .card img {
+    width: 73%;
+    height: 214px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+
+    .cart-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.3);
+      z-index: 98;
+      display: none;
+    }
+
+    .cart-overlay.show {
+      display: block;
+    }
+
+    @media (max-width: 480px) {
+      .hero h2 { font-size: 1.5rem; }
+      .cart-sidebar { width: 90%; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🛒 AbCart</h1>
+    <button class="cart-button" onclick="toggleCart()">🧺 Cart (<span id="cart-count">0</span>)</button>
+  </header>
+
+  <section class="hero">
+    <h2>Welcome to AbCart!</h2>
+    <p>Discover top deals on your favorite gadgets.</p>
+  </section>
+
+  <section class="products" id="product-list">
+    <!-- Dynamic Product Cards -->
+  </section>
+
+  <!-- Cart Sidebar -->
+  <div class="cart-sidebar" id="cart-sidebar">
+    <h2>Your Cart</h2>
+    <div id="cart-items"></div>
+  </div>
+
+  <!-- Overlay -->
+  <div class="cart-overlay" id="cart-overlay" onclick="toggleCart()"></div>
+
+  <script>
+    const products = [
+      { id: 1, name: "Phone X", price: 45000, img: "https://m.media-amazon.com/images/G/31/img23/Wireless/CatPage/Revamp2025/TDOW/AprRevamp/iPhone_16_580x740.jpeg" },
+      { id: 2, name: "Headphones Pro", price: 2999, img: "https://m.media-amazon.com/images/I/61GpzGjfZDL._AC_UL480_FMwebp_QL65_.jpg" },
+      { id: 3, name: "Gaming Laptop", price: 85000, img: "https://m.media-amazon.com/images/I/51cUpoMI6nL._AC_UF480,480_SR480,480_.jpg" },
+      { id: 4, name: "Smart Watch", price: 3499, img: "https://m.media-amazon.com/images/I/719RiDAGXtL._AC_UL480_FMwebp_QL65_.jpg" }
+    ];
+
+    const cart = [];
+
+    const productList = document.getElementById("product-list");
+    const cartItems = document.getElementById("cart-items");
+    const cartCount = document.getElementById("cart-count");
+
+    function renderProducts() {
+      productList.innerHTML = "";
+      products.forEach(prod => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <img src="${prod.img}" alt="${prod.name}">
+          <h3>${prod.name}</h3>
+          <p class="price">₹${prod.price}</p>
+          <button onclick="addToCart(${prod.id})">Add to Cart</button>
+        `;
+        productList.appendChild(card);
+      });
+    }
+
+    function renderCart() {
+      cartItems.innerHTML = "";
+      cartCount.textContent = cart.length;
+
+      if (cart.length === 0) {
+        cartItems.innerHTML = "<p>Your cart is empty.</p>";
+        return;
+      }
+
+      cart.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "cart-item";
+        div.innerHTML = `
+          <img src="${item.img}" alt="${item.name}">
+          <h3>${item.name}</h3>
+          <p class="price">₹${item.price}</p>
+          <button class="remove-btn" onclick="removeFromCart(${item.id})">Remove</button>
+        `;
+        cartItems.appendChild(div);
+      });
+    }
+
+    function addToCart(id) {
+      const product = products.find(p => p.id === id);
+      cart.push(product);
+      renderCart();
+    }
+
+    function removeFromCart(id) {
+      const index = cart.findIndex(item => item.id === id);
+      if (index > -1) {
+        cart.splice(index, 1);
+        renderCart();
+      }
+    }
+
+    function toggleCart() {
+      const sidebar = document.getElementById("cart-sidebar");
+      const overlay = document.getElementById("cart-overlay");
+      sidebar.classList.toggle("open");
+      overlay.classList.toggle("show");
+    }
+
+    renderProducts();
+    renderCart();
+  </script>
+
+</body>
+</html>
